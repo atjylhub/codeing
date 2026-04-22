@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>吃药提醒小工具</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --primary-soft: #dbeafe;
+      --border: #e5e7eb;
+      --ok: #059669;
+      --warn: #d97706;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 32px 16px 48px;
+    }
+
+    .title {
+      margin-bottom: 20px;
+    }
+
+    .title h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+    }
+
+    .title p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+      margin-bottom: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    input, button {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      font-size: 15px;
+    }
+
+    input:focus {
+      outline: 2px solid var(--primary-soft);
+      border-color: var(--primary);
+    }
+
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 30px;
+    }
+
+    button:hover {
+      opacity: 0.95;
+    }
+
+    .result-main {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 16px;
+    }
+
+    .highlight {
+      border-radius: 16px;
+      padding: 18px;
+      background: linear-gradient(135deg, #eff6ff, #ffffff);
+      border: 1px solid #bfdbfe;
+    }
+
+    .highlight h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+
+    .pill-type {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .pill-whole {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .pill-half {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .big-text {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 8px 0;
+    }
+
+    .subtext {
+      color: var(--muted);
+    }
+
+    .tips {
+      background: #fafafa;
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .tips h3, .list h3 {
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .list ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .list li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .list li:last-child {
+      border-bottom: none;
+    }
+
+    .date {
+      font-weight: 700;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      vertical-align: middle;
+    }
+
+    .tag-half {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .tag-whole {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .empty {
+      color: var(--muted);
+    }
+
+    @media (max-width: 760px) {
+      .result-main {
+        grid-template-columns: 1fr;
+      }
+
+      .title h1 {
+        font-size: 24px;
+      }
+
+      .big-text {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">
+      <h1>吃药提醒小工具</h1>
+      <p>规则：连续服用 3 天半片，第 4 天服用 1 次整片，然后循环。</p>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label for="startDate">开始服药日期</label>
+          <input id="startDate" type="date" />
+        </div>
+        <div>
+          <label for="targetDate">想查看的日期</label>
+          <input id="targetDate" type="date" />
+        </div>
+        <div>
+          <label for="previewDays">向后预览天数</label>
+          <input id="previewDays" type="number" min="1" max="60" value="10" />
+        </div>
+        <div>
+          <button id="calcBtn">立即计算</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card result-main">
+      <div class="highlight">
+        <h2>今日/目标日结果</h2>
+        <div id="currentResult" class="empty">请选择开始日期后点击计算。</div>
+      </div>
+
+      <div class="tips">
+        <h3>人性化提示</h3>
+        <div id="friendlyTip" class="empty">这里会显示提示语。</div>
+      </div>
+    </div>
+
+    <div class="card list">
+      <h3>接下来几天的安排</h3>
+      <ul id="scheduleList"></ul>
+    </div>
+  </div>
+
+  <script>
+    const startDateInput = document.getElementById('startDate');
+    const targetDateInput = document.getElementById('targetDate');
+    const previewDaysInput = document.getElementById('previewDays');
+    const calcBtn = document.getElementById('calcBtn');
+    const currentResult = document.getElementById('currentResult');
+    const friendlyTip = document.getElementById('friendlyTip');
+    const scheduleList = document.getElementById('scheduleList');
+
+    const today = new Date();
+    const todayStr = formatDate(today);
+
+    // 固定startDate 为 2026年4月4日
+    const temp = new Date(2026,3,4); // js中,月从0开始
+    const steadyStartDate = formatDate(temp);
+    startDateInput.value = steadyStartDate;
+
+    // startDateInput.value = todayStr;
+    targetDateInput.value = todayStr;
+
+    calcBtn.addEventListener('click', render);
+    render();
+
+    function render() {
+      const startStr = startDateInput.value;
+      const targetStr = targetDateInput.value;
+      const previewDays = Number(previewDaysInput.value || 10);
+
+      if (!startStr || !targetStr) {
+        currentResult.innerHTML = '<span class="empty">请先填写日期。</span>';
+        friendlyTip.textContent = '请先选择开始服药日期和目标日期。';
+        scheduleList.innerHTML = '';
+        return;
+      }
+
+      const start = parseLocalDate(startStr);
+      const target = parseLocalDate(targetStr);
+
+      if (target < start) {
+        currentResult.innerHTML = '<span class="empty">目标日期不能早于开始服药日期。</span>';
+        friendlyTip.textContent = '请把目标日期调整到开始日期当天或之后。';
+        scheduleList.innerHTML = '';
+        return;
+      }
+
+      const info = getDoseInfo(start, target);
+      renderCurrent(info);
+      renderTip(start, target, info);
+      renderSchedule(target, previewDays);
+    }
+
+    function getDoseInfo(startDate, currentDate) {
+      const diffDays = daysBetween(startDate, currentDate);
+      const cycleIndex = diffDays % 4;
+      const doseType = cycleIndex === 3 ? 'whole' : 'half';
+      const doseText = doseType === 'whole' ? '整片' : '半片';
+      return { diffDays, cycleIndex, doseType, doseText, date: currentDate };
+    }
+
+    function renderCurrent(info) {
+      const dateText = formatDateCN(info.date);
+      const pillClass = info.doseType === 'whole' ? 'pill-whole' : 'pill-half';
+      const pillLabel = info.doseType === 'whole' ? '今天服用整片' : '今天服用半片';
+
+      currentResult.innerHTML = `
+        <div class="pill-type ${pillClass}">${pillLabel}</div>
+        <div class="big-text">${dateText}</div>
+        <div>这是从开始服药算起的第 <strong>${info.diffDays + 1}</strong> 天。</div>
+        <div class="subtext">当前处于 4 天循环中的第 <strong>${info.cycleIndex + 1}</strong> 天。</div>
+      `;
+    }
+
+    function renderTip(start, target, info) {
+      const nextWholeIn = daysUntilNextType(start, target, 'whole');
+      const nextHalfIn = daysUntilNextType(start, target, 'half');
+
+      let text = '';
+      if (info.doseType === 'whole') {
+        text = '今天服用整片。';
+        text += nextHalfIn === 1 ? ' 明天开始恢复半片。' : ` ${nextHalfIn} 天后服用半片。`;
+      } else {
+        text = '今天服用半片。';
+        text += nextWholeIn === 1 ? ' 明天服用整片。' : ` ${nextWholeIn} 天后服用整片。`;
+      }
+
+      friendlyTip.textContent = text;
+    }
+
+    function renderSchedule(baseDate, previewDays) {
+      const safeDays = Math.max(1, Math.min(60, previewDays));
+      scheduleList.innerHTML = '';
+
+      const start = parseLocalDate(startDateInput.value);
+
+      for (let i = 0; i < safeDays; i++) {
+        const date = addDays(baseDate, i);
+        const info = getDoseInfo(start, date);
+        const li = document.createElement('li');
+        const isWhole = info.doseType === 'whole';
+        const tagClass = isWhole ? 'tag-whole' : 'tag-half';
+        const tagText = isWhole ? '整片' : '半片';
+        const label = i === 0 ? '（目标日）' : i === 1 ? '（次日）' : '';
+
+        li.innerHTML = `
+          <span class="date">${formatDateCN(date)}</span>
+          <span class="tag ${tagClass}">${tagText}</span>
+          <span class="subtext">${label}</span>
+        `;
+        scheduleList.appendChild(li);
+      }
+    }
+
+    function daysUntilNextType(start, fromDate, targetType) {
+      for (let i = 1; i <= 10; i++) {
+        const date = addDays(fromDate, i);
+        const info = getDoseInfo(start, date);
+        if (info.doseType === targetType) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    function daysBetween(start, end) {
+      const ms = end.getTime() - start.getTime();
+      return Math.floor(ms / 86400000);
+    }
+
+    function addDays(date, days) {
+      const d = new Date(date);
+      d.setDate(d.getDate() + days);
+      return d;
+    }
+
+    function parseLocalDate(str) {
+      const [y, m, d] = str.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function formatDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function formatDateCN(date) {
+      const y = date.getFullYear();
+      const m = date.getMonth() + 1;
+      const d = date.getDate();
+      return `${y}年${m}月${d}日`;
+    }
+  </script>
+</body>
+</html>
