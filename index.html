@@ -3,410 +3,985 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>吃药提醒小工具</title>
+  <title>吃药打卡日历</title>
   <style>
     :root {
-      --bg: #f7f8fc;
-      --card: #ffffff;
+      --bg: #f5f7fb;
+      --panel: #ffffff;
       --text: #1f2937;
-      --muted: #6b7280;
-      --primary: #2563eb;
+      --muted: #667085;
+      --line: #d9dee8;
+      --primary: #1d4ed8;
       --primary-soft: #dbeafe;
-      --border: #e5e7eb;
-      --ok: #059669;
-      --warn: #d97706;
+      --half: #ecfdf3;
+      --half-text: #087443;
+      --whole: #fff7ed;
+      --whole-text: #b45309;
+      --done: #16a34a;
+      --miss: #dc2626;
+      --shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
       font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      background: var(--bg);
+      background:
+        linear-gradient(rgba(30, 64, 175, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 64, 175, 0.035) 1px, transparent 1px),
+        var(--bg);
+      background-size: 24px 24px;
       color: var(--text);
-      line-height: 1.6;
+      line-height: 1.5;
     }
 
-    .wrap {
-      max-width: 920px;
-      margin: 0 auto;
-      padding: 32px 16px 48px;
-    }
-
-    .title {
-      margin-bottom: 20px;
-    }
-
-    .title h1 {
-      margin: 0 0 8px;
-      font-size: 30px;
-    }
-
-    .title p {
-      margin: 0;
-      color: var(--muted);
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 20px;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
-      margin-bottom: 18px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    input, button {
-      width: 100%;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      padding: 12px 14px;
-      font-size: 15px;
-    }
-
-    input:focus {
-      outline: 2px solid var(--primary-soft);
-      border-color: var(--primary);
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
     }
 
     button {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      font-weight: 600;
+      border: 0;
       cursor: pointer;
-      margin-top: 30px;
     }
 
-    button:hover {
-      opacity: 0.95;
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
     }
 
-    .result-main {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr;
+    .app {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 28px 16px 44px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
       gap: 16px;
+      margin-bottom: 18px;
     }
 
-    .highlight {
-      border-radius: 16px;
-      padding: 18px;
-      background: linear-gradient(135deg, #eff6ff, #ffffff);
-      border: 1px solid #bfdbfe;
-    }
-
-    .highlight h2 {
-      margin: 0 0 12px;
-      font-size: 22px;
-    }
-
-    .pill-type {
-      display: inline-block;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-
-    .pill-whole {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    .pill-half {
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .big-text {
-      font-size: 28px;
-      font-weight: 800;
-      margin: 8px 0;
-    }
-
-    .subtext {
-      color: var(--muted);
-    }
-
-    .tips {
-      background: #fafafa;
-      border: 1px dashed var(--border);
-      border-radius: 16px;
-      padding: 16px;
-    }
-
-    .tips h3, .list h3 {
-      margin-top: 0;
-      font-size: 18px;
-    }
-
-    .list ul {
-      list-style: none;
-      padding: 0;
+    h1,
+    h2,
+    h3,
+    p {
       margin: 0;
     }
 
-    .list li {
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
+    h1 {
+      font-size: 28px;
+      line-height: 1.2;
     }
 
-    .list li:last-child {
-      border-bottom: none;
+    .subtitle {
+      color: var(--muted);
+      margin-top: 6px;
     }
 
-    .date {
+    .settings {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(150px, 1fr));
+      gap: 12px;
+      min-width: min(560px, 100%);
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    label {
+      color: #344054;
+      font-size: 13px;
       font-weight: 700;
     }
 
-    .tag {
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      padding: 10px 11px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    textarea {
+      min-height: 86px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-soft);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .calendar-panel,
+    .editor-panel,
+    .records-panel {
+      padding: 16px;
+    }
+
+    .calendar-head {
+      display: grid;
+      grid-template-columns: 42px 1fr 42px;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 38px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--primary);
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .icon-btn:hover {
+      background: var(--primary-soft);
+    }
+
+    .month-title {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .weekdays,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+
+    .weekdays {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .day {
+      min-height: 62px;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 6px;
+      display: grid;
+      align-content: start;
+      gap: 4px;
+      text-align: left;
+      color: var(--text);
+      position: relative;
+    }
+
+    .day.has-done {
+      background: #f0fdf4;
+      border-color: #86efac;
+    }
+
+    .day.has-miss {
+      background: #fff1f2;
+      border-color: #fda4af;
+    }
+
+    .day:hover {
+      border-color: var(--primary);
+      z-index: 1;
+    }
+
+    .day.is-muted {
+      background: #f8fafc;
+      color: #98a2b3;
+    }
+
+    .day.is-selected {
+      outline: 3px solid var(--primary);
+      z-index: 2;
+    }
+
+    .day.is-today .num {
+      color: var(--primary);
+      font-weight: 900;
+    }
+
+    .num {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .mini-tags {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dose-icon {
+      width: 18px;
+      height: 18px;
       display: inline-block;
-      margin-left: 8px;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-      vertical-align: middle;
+      border: 2px solid #0f766e;
+      border-radius: 50%;
+      background: #0f766e;
+      box-shadow: 0 2px 7px rgba(15, 118, 110, 0.22);
     }
 
-    .tag-half {
+    .dose-icon.half {
+      background: linear-gradient(90deg, #0f766e 0 50%, #ffffff 50% 100%);
+    }
+
+    .dose-icon.whole {
+      background: #b45309;
+      border-color: #b45309;
+      box-shadow: 0 2px 7px rgba(180, 83, 9, 0.22);
+    }
+
+    .status-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-dot.done {
+      background: var(--done);
+    }
+
+    .status-dot.miss {
+      background: var(--miss);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .badge.half {
+      background: var(--half);
+      color: var(--half-text);
+    }
+
+    .badge.whole {
+      background: var(--whole);
+      color: var(--whole-text);
+    }
+
+    .badge.done {
       background: #dcfce7;
       color: #166534;
     }
 
-    .tag-whole {
-      background: #fef3c7;
-      color: #92400e;
+    .badge.miss {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .dose-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .side {
+      display: grid;
+      gap: 18px;
+    }
+
+    .selected-summary {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 16px;
+    }
+
+    .selected-date {
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .summary-text {
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field.wide {
+      grid-column: 1 / -1;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      min-height: 40px;
+      border-radius: 8px;
+      padding: 0 15px;
+      font-weight: 800;
+    }
+
+    .btn.primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn.secondary {
+      background: #eef2ff;
+      color: #1e40af;
+    }
+
+    .btn.danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .btn.ghost {
+      background: #f2f4f7;
+      color: #344054;
+    }
+
+    .records-panel {
+      overflow: hidden;
+    }
+
+    .records-panel.is-hidden {
+      display: none;
+    }
+
+    .records-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .records-tools {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .records-tools input {
+      width: min(260px, 42vw);
+    }
+
+    .query-box {
+      width: min(300px, 100%);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 580px;
+      table-layout: fixed;
+      background: #fff;
+    }
+
+    th:nth-child(1),
+    td:nth-child(1) {
+      width: 16%;
+    }
+
+    th:nth-child(2),
+    td:nth-child(2),
+    th:nth-child(3),
+    td:nth-child(3) {
+      width: 14%;
+    }
+
+    th:nth-child(4),
+    td:nth-child(4) {
+      width: 30%;
+    }
+
+    th:nth-child(5),
+    td:nth-child(5) {
+      width: 26%;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 12px;
+      text-align: left;
+      vertical-align: middle;
+      overflow-wrap: anywhere;
+    }
+
+    th {
+      background: #f8fafc;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+
+    .small-btn {
+      flex: 0 0 auto;
+      min-height: 32px;
+      border-radius: 7px;
+      padding: 0 10px;
+      background: #f2f4f7;
+      color: #344054;
+      font-weight: 800;
+    }
+
+    .small-btn.delete {
+      background: #fff1f2;
+      color: #be123c;
     }
 
     .empty {
       color: var(--muted);
+      padding: 18px;
+      text-align: center;
     }
 
-    @media (max-width: 760px) {
-      .result-main {
+    .guard-note {
+      margin-top: 10px;
+      color: #b45309;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 900px) {
+      .topbar,
+      .layout {
         grid-template-columns: 1fr;
       }
 
-      .title h1 {
+      .topbar {
+        display: grid;
+      }
+
+      .settings {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        padding: 20px 10px 34px;
+      }
+
+      h1 {
         font-size: 24px;
       }
 
-      .big-text {
-        font-size: 24px;
+      .calendar-panel,
+      .editor-panel,
+      .records-panel {
+        padding: 12px;
+      }
+
+      .day {
+        min-height: 56px;
+        padding: 5px;
+      }
+
+      .badge {
+        font-size: 11px;
+        padding-inline: 5px;
+      }
+
+      .form-grid,
+      .selected-summary {
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="title">
-      <h1>吃药提醒小工具</h1>
-      <p>规则：连续服用 3 天半片，第 4 天服用 1 次整片，然后循环。</p>
-    </div>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1>吃药打卡日历</h1>
+        <p class="subtitle">按 3 天半片、1 天整片循环；记录存在当前浏览器中。</p>
+      </div>
 
-    <div class="card">
-      <div class="grid">
-        <div>
+      <section class="settings" aria-label="基础设置">
+        <div class="field">
           <label for="startDate">开始服药日期</label>
           <input id="startDate" type="date" />
         </div>
-        <div>
-          <label for="targetDate">想查看的日期</label>
-          <input id="targetDate" type="date" />
+        <div class="field">
+          <label for="jumpDate">跳转日期</label>
+          <input id="jumpDate" type="date" />
         </div>
-        <div>
-          <label for="previewDays">向后预览天数</label>
-          <input id="previewDays" type="number" min="1" max="60" value="10" />
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="btn ghost" type="button" id="toggleRecordsBtn" aria-expanded="false">查看打卡记录</button>
         </div>
-        <div>
-          <button id="calcBtn">立即计算</button>
+      </section>
+    </header>
+
+    <section class="layout">
+      <section class="panel calendar-panel" aria-label="打卡日历">
+        <div class="calendar-head">
+          <button class="icon-btn" id="prevMonth" type="button" aria-label="上个月">&lt;</button>
+          <h2 class="month-title" id="monthTitle"></h2>
+          <button class="icon-btn" id="nextMonth" type="button" aria-label="下个月">&gt;</button>
         </div>
-      </div>
-    </div>
+        <div class="weekdays" aria-hidden="true">
+          <span>一</span>
+          <span>二</span>
+          <span>三</span>
+          <span>四</span>
+          <span>五</span>
+          <span>六</span>
+          <span>日</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </section>
 
-    <div class="card result-main">
-      <div class="highlight">
-        <h2>今日/目标日结果</h2>
-        <div id="currentResult" class="empty">请选择开始日期后点击计算。</div>
-      </div>
+      <div class="side">
+        <section class="panel editor-panel" aria-label="当前日期打卡">
+          <div class="selected-summary">
+            <div>
+              <div class="selected-date" id="selectedDateText"></div>
+              <p class="summary-text" id="selectedHint"></p>
+            </div>
+            <span class="dose-label" id="selectedDose"></span>
+          </div>
 
-      <div class="tips">
-        <h3>人性化提示</h3>
-        <div id="friendlyTip" class="empty">这里会显示提示语。</div>
-      </div>
-    </div>
+          <form id="recordForm">
+            <div class="form-grid">
+              <div class="field">
+                <label for="recordType">服药类型</label>
+                <select id="recordType">
+                  <option value="half">半片</option>
+                  <option value="whole">整片</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="recordStatus">打卡状态</label>
+                <select id="recordStatus">
+                  <option value="1">已打卡</option>
+                  <option value="0">未打卡</option>
+                </select>
+              </div>
+              <div class="field wide">
+                <label for="recordNote">备注信息</label>
+                <textarea id="recordNote" placeholder="按时吃药、未按时吃药、吃药正常但忘记打卡..."></textarea>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn primary" type="submit" id="saveBtn">保存记录</button>
+              <button class="btn secondary" type="button" id="markDoneBtn">一键成功</button>
+              <button class="btn ghost" type="button" id="clearFormBtn">清空输入</button>
+              <button class="btn danger" type="button" id="deleteSelectedBtn">删除当天</button>
+            </div>
+            <p class="guard-note" id="guardNote"></p>
+          </form>
+        </section>
 
-    <div class="card list">
-      <h3>接下来几天的安排</h3>
-      <ul id="scheduleList"></ul>
-    </div>
-  </div>
+        <section class="panel records-panel is-hidden" id="recordsPanel" aria-label="打卡记录">
+          <div class="records-head">
+            <h2>records</h2>
+            <div class="records-tools">
+              <input id="queryInput" type="search" placeholder="查询日期、类型、备注" />
+              <button class="btn ghost" type="button" id="todayBtn">回到今天</button>
+            </div>
+          </div>
+          <div class="records-content">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>date</th>
+                    <th>type</th>
+                    <th>status</th>
+                    <th>extend</th>
+                    <th>operate</th>
+                  </tr>
+                </thead>
+                <tbody id="recordsBody"></tbody>
+              </table>
+              <div class="empty" id="emptyRecords">暂无记录</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
 
   <script>
+    const STORAGE_KEY = 'medicine-checkin-records-v1';
+    const START_KEY = 'medicine-checkin-start-date-v1';
+    const today = stripTime(new Date());
+
     const startDateInput = document.getElementById('startDate');
-    const targetDateInput = document.getElementById('targetDate');
-    const previewDaysInput = document.getElementById('previewDays');
-    const calcBtn = document.getElementById('calcBtn');
-    const currentResult = document.getElementById('currentResult');
-    const friendlyTip = document.getElementById('friendlyTip');
-    const scheduleList = document.getElementById('scheduleList');
+    const jumpDateInput = document.getElementById('jumpDate');
+    const queryInput = document.getElementById('queryInput');
+    const toggleRecordsBtn = document.getElementById('toggleRecordsBtn');
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+    const monthTitle = document.getElementById('monthTitle');
+    const calendarGrid = document.getElementById('calendarGrid');
+    const selectedDateText = document.getElementById('selectedDateText');
+    const selectedHint = document.getElementById('selectedHint');
+    const selectedDose = document.getElementById('selectedDose');
+    const recordForm = document.getElementById('recordForm');
+    const recordType = document.getElementById('recordType');
+    const recordStatus = document.getElementById('recordStatus');
+    const recordNote = document.getElementById('recordNote');
+    const saveBtn = document.getElementById('saveBtn');
+    const markDoneBtn = document.getElementById('markDoneBtn');
+    const clearFormBtn = document.getElementById('clearFormBtn');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const guardNote = document.getElementById('guardNote');
+    const recordsPanel = document.getElementById('recordsPanel');
+    const todayBtn = document.getElementById('todayBtn');
+    const recordsBody = document.getElementById('recordsBody');
+    const emptyRecords = document.getElementById('emptyRecords');
 
-    const today = new Date();
-    const todayStr = formatDate(today);
+    let records = loadRecords();
+    let selectedDate = today;
+    let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    // 固定startDate 为 2026年4月4日
-    const temp = new Date(2026,3,4); // js中,月从0开始
-    const steadyStartDate = formatDate(temp);
-    startDateInput.value = steadyStartDate;
+    startDateInput.value = localStorage.getItem(START_KEY) || '2026-04-04';
+    jumpDateInput.value = formatDate(today);
 
-    // startDateInput.value = todayStr;
-    targetDateInput.value = todayStr;
+    startDateInput.addEventListener('change', () => {
+      localStorage.setItem(START_KEY, startDateInput.value);
+      renderAll();
+    });
 
-    calcBtn.addEventListener('click', render);
-    render();
+    jumpDateInput.addEventListener('change', () => {
+      if (!jumpDateInput.value) return;
+      selectDate(parseLocalDate(jumpDateInput.value));
+    });
 
-    function render() {
-      const startStr = startDateInput.value;
-      const targetStr = targetDateInput.value;
-      const previewDays = Number(previewDaysInput.value || 10);
+    toggleRecordsBtn.addEventListener('click', toggleRecords);
+    queryInput.addEventListener('input', renderRecords);
+    prevMonthBtn.addEventListener('click', () => moveMonth(-1));
+    nextMonthBtn.addEventListener('click', () => moveMonth(1));
+    todayBtn.addEventListener('click', () => selectDate(today));
+    clearFormBtn.addEventListener('click', clearForm);
+    deleteSelectedBtn.addEventListener('click', deleteSelectedRecord);
+    markDoneBtn.addEventListener('click', markSelectedDone);
 
-      if (!startStr || !targetStr) {
-        currentResult.innerHTML = '<span class="empty">请先填写日期。</span>';
-        friendlyTip.textContent = '请先选择开始服药日期和目标日期。';
-        scheduleList.innerHTML = '';
-        return;
+    recordForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      saveSelectedRecord();
+    });
+
+    renderAll();
+
+    function renderAll() {
+      renderCalendar();
+      renderSelected();
+      renderRecords();
+    }
+
+    function renderCalendar() {
+      const start = getStartDate();
+      const firstOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+      const startOffset = (firstOfMonth.getDay() + 6) % 7;
+      const gridStart = addDays(firstOfMonth, -startOffset);
+
+      monthTitle.textContent = `${viewDate.getFullYear()}年 ${viewDate.getMonth() + 1}月`;
+      calendarGrid.innerHTML = '';
+
+      for (let i = 0; i < 42; i++) {
+        const date = addDays(gridStart, i);
+        const key = formatDate(date);
+        const dose = getDoseInfo(start, date);
+        const record = records[key];
+        const button = document.createElement('button');
+        button.className = [
+          'day',
+          date.getMonth() !== viewDate.getMonth() ? 'is-muted' : '',
+          isSameDay(date, selectedDate) ? 'is-selected' : '',
+          isSameDay(date, today) ? 'is-today' : '',
+          record?.status === 1 ? 'has-done' : '',
+          record?.status === 0 ? 'has-miss' : ''
+        ].filter(Boolean).join(' ');
+        button.type = 'button';
+        button.setAttribute('aria-label', `${formatDateCN(date)} ${doseText(dose.type)} ${record ? statusText(record.status) : ''}`.trim());
+        button.innerHTML = `
+          <span class="num">${date.getDate()}</span>
+          <span class="mini-tags">
+            ${doseIcon(dose.type)}
+            ${record ? `<span class="status-dot ${record.status === 1 ? 'done' : 'miss'}" title="${statusText(record.status)}"></span>` : ''}
+          </span>
+        `;
+        button.addEventListener('click', () => selectDate(date));
+        calendarGrid.appendChild(button);
       }
+    }
 
-      const start = parseLocalDate(startStr);
-      const target = parseLocalDate(targetStr);
+    function renderSelected() {
+      const start = getStartDate();
+      const key = formatDate(selectedDate);
+      const dose = getDoseInfo(start, selectedDate);
+      const record = records[key];
+      const canEdit = isSameDay(selectedDate, today);
 
-      if (target < start) {
-        currentResult.innerHTML = '<span class="empty">目标日期不能早于开始服药日期。</span>';
-        friendlyTip.textContent = '请把目标日期调整到开始日期当天或之后。';
-        scheduleList.innerHTML = '';
-        return;
+      selectedDateText.textContent = formatDateCN(selectedDate);
+      selectedDose.innerHTML = `${doseIcon(dose.type)} ${doseText(dose.type)}`;
+      selectedHint.textContent = `第 ${dose.dayNumber} 天，4 天循环中的第 ${dose.cycleIndex + 1} 天。`;
+
+      recordType.value = record?.type || dose.type;
+      recordStatus.value = String(record?.status ?? 1);
+      recordNote.value = record?.extend || '';
+      saveBtn.textContent = record ? '更新记录' : '新增记录';
+      recordType.disabled = true;
+      recordStatus.disabled = !canEdit;
+      recordNote.disabled = !canEdit;
+      saveBtn.disabled = !canEdit;
+      markDoneBtn.disabled = !canEdit;
+      clearFormBtn.disabled = !canEdit;
+      deleteSelectedBtn.disabled = !canEdit || !record;
+      guardNote.textContent = canEdit ? '' : '为避免误操作，只能给今天新增或修改打卡记录。';
+    }
+
+    function renderRecords() {
+      const keyword = queryInput.value.trim().toLowerCase();
+      const rows = Object.values(records)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .filter((record) => {
+          const haystack = `${record.date} ${formatDateCN(parseLocalDate(record.date))} ${record.type} ${record.status} ${record.extend}`.toLowerCase();
+          return haystack.includes(keyword);
+        });
+
+      recordsBody.innerHTML = '';
+      emptyRecords.style.display = rows.length ? 'none' : 'block';
+
+      rows.forEach((record) => {
+        const tr = document.createElement('tr');
+        const isTodayRecord = record.date === formatDate(today);
+        tr.innerHTML = `
+          <td>${formatDateCN(parseLocalDate(record.date))}</td>
+          <td><span class="dose-label">${doseIcon(record.type)} ${doseText(record.type)}</span></td>
+          <td><span class="badge ${record.status === 1 ? 'done' : 'miss'}">${statusText(record.status)}</span></td>
+          <td>${escapeHTML(record.extend || '-')}</td>
+          <td>
+            <div class="row-actions">
+              <button class="small-btn" type="button" data-action="edit" data-date="${record.date}">edit</button>
+              <button class="small-btn delete" type="button" data-action="delete" data-date="${record.date}" ${isTodayRecord ? '' : 'disabled'}>delete</button>
+            </div>
+          </td>
+        `;
+        recordsBody.appendChild(tr);
+      });
+
+      recordsBody.querySelectorAll('button[data-action]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const date = parseLocalDate(button.dataset.date);
+          if (button.dataset.action === 'edit') {
+            selectDate(date);
+          } else {
+            deleteRecord(button.dataset.date);
+          }
+        });
+      });
+    }
+
+    function selectDate(date) {
+      selectedDate = stripTime(date);
+      viewDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      jumpDateInput.value = formatDate(selectedDate);
+      renderAll();
+    }
+
+    function moveMonth(delta) {
+      viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + delta, 1);
+      renderCalendar();
+    }
+
+    function saveSelectedRecord() {
+      if (!isSameDay(selectedDate, today)) return;
+      const key = formatDate(selectedDate);
+      records[key] = {
+        date: key,
+        type: recordType.value,
+        status: Number(recordStatus.value),
+        extend: recordNote.value.trim(),
+        updatedAt: new Date().toISOString()
+      };
+      persistRecords();
+      renderAll();
+    }
+
+    function markSelectedDone() {
+      if (!isSameDay(selectedDate, today)) return;
+      recordStatus.value = '1';
+      if (!recordNote.value.trim()) {
+        recordNote.value = '按时吃药';
       }
+      saveSelectedRecord();
+    }
 
-      const info = getDoseInfo(start, target);
-      renderCurrent(info);
-      renderTip(start, target, info);
-      renderSchedule(target, previewDays);
+    function clearForm() {
+      const dose = getDoseInfo(getStartDate(), selectedDate);
+      recordType.value = dose.type;
+      recordStatus.value = '1';
+      recordNote.value = '';
+    }
+
+    function deleteSelectedRecord() {
+      if (!isSameDay(selectedDate, today)) return;
+      deleteRecord(formatDate(selectedDate));
+    }
+
+    function deleteRecord(dateKey) {
+      if (!records[dateKey]) return;
+      delete records[dateKey];
+      persistRecords();
+      renderAll();
+    }
+
+    function toggleRecords() {
+      const willShow = recordsPanel.classList.contains('is-hidden');
+      recordsPanel.classList.toggle('is-hidden', !willShow);
+      toggleRecordsBtn.textContent = willShow ? '隐藏打卡记录' : '查看打卡记录';
+      toggleRecordsBtn.setAttribute('aria-expanded', String(willShow));
+      if (willShow) renderRecords();
     }
 
     function getDoseInfo(startDate, currentDate) {
       const diffDays = daysBetween(startDate, currentDate);
-      const cycleIndex = diffDays % 4;
-      const doseType = cycleIndex === 3 ? 'whole' : 'half';
-      const doseText = doseType === 'whole' ? '整片' : '半片';
-      return { diffDays, cycleIndex, doseType, doseText, date: currentDate };
+      const normalized = ((diffDays % 4) + 4) % 4;
+      const type = normalized === 3 ? 'whole' : 'half';
+      return {
+        type,
+        dayNumber: diffDays + 1,
+        cycleIndex: normalized
+      };
     }
 
-    function renderCurrent(info) {
-      const dateText = formatDateCN(info.date);
-      const pillClass = info.doseType === 'whole' ? 'pill-whole' : 'pill-half';
-      const pillLabel = info.doseType === 'whole' ? '今天服用整片' : '今天服用半片';
-
-      currentResult.innerHTML = `
-        <div class="pill-type ${pillClass}">${pillLabel}</div>
-        <div class="big-text">${dateText}</div>
-        <div>这是从开始服药算起的第 <strong>${info.diffDays + 1}</strong> 天。</div>
-        <div class="subtext">当前处于 4 天循环中的第 <strong>${info.cycleIndex + 1}</strong> 天。</div>
-      `;
+    function getStartDate() {
+      return startDateInput.value ? parseLocalDate(startDateInput.value) : today;
     }
 
-    function renderTip(start, target, info) {
-      const nextWholeIn = daysUntilNextType(start, target, 'whole');
-      const nextHalfIn = daysUntilNextType(start, target, 'half');
-
-      let text = '';
-      if (info.doseType === 'whole') {
-        text = '今天服用整片。';
-        text += nextHalfIn === 1 ? ' 明天开始恢复半片。' : ` ${nextHalfIn} 天后服用半片。`;
-      } else {
-        text = '今天服用半片。';
-        text += nextWholeIn === 1 ? ' 明天服用整片。' : ` ${nextWholeIn} 天后服用整片。`;
-      }
-
-      friendlyTip.textContent = text;
-    }
-
-    function renderSchedule(baseDate, previewDays) {
-      const safeDays = Math.max(1, Math.min(60, previewDays));
-      scheduleList.innerHTML = '';
-
-      const start = parseLocalDate(startDateInput.value);
-
-      for (let i = 0; i < safeDays; i++) {
-        const date = addDays(baseDate, i);
-        const info = getDoseInfo(start, date);
-        const li = document.createElement('li');
-        const isWhole = info.doseType === 'whole';
-        const tagClass = isWhole ? 'tag-whole' : 'tag-half';
-        const tagText = isWhole ? '整片' : '半片';
-        const label = i === 0 ? '（目标日）' : i === 1 ? '（次日）' : '';
-
-        li.innerHTML = `
-          <span class="date">${formatDateCN(date)}</span>
-          <span class="tag ${tagClass}">${tagText}</span>
-          <span class="subtext">${label}</span>
-        `;
-        scheduleList.appendChild(li);
+    function loadRecords() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      } catch {
+        return {};
       }
     }
 
-    function daysUntilNextType(start, fromDate, targetType) {
-      for (let i = 1; i <= 10; i++) {
-        const date = addDays(fromDate, i);
-        const info = getDoseInfo(start, date);
-        if (info.doseType === targetType) {
-          return i;
-        }
-      }
-      return -1;
+    function persistRecords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
     }
 
-    function daysBetween(start, end) {
-      const ms = end.getTime() - start.getTime();
-      return Math.floor(ms / 86400000);
+    function parseLocalDate(value) {
+      const [year, month, day] = value.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function stripTime(date) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
     }
 
     function addDays(date, days) {
-      const d = new Date(date);
-      d.setDate(d.getDate() + days);
-      return d;
+      const next = new Date(date);
+      next.setDate(next.getDate() + days);
+      return stripTime(next);
     }
 
-    function parseLocalDate(str) {
-      const [y, m, d] = str.split('-').map(Number);
-      return new Date(y, m - 1, d);
+    function daysBetween(start, end) {
+      return Math.round((stripTime(end).getTime() - stripTime(start).getTime()) / 86400000);
     }
 
     function formatDate(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
 
     function formatDateCN(date) {
-      const y = date.getFullYear();
-      const m = date.getMonth() + 1;
-      const d = date.getDate();
-      return `${y}年${m}月${d}日`;
+      return `${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+
+    function doseText(type) {
+      return type === 'whole' ? '整片' : '半片';
+    }
+
+    function statusText(status) {
+      return Number(status) === 1 ? '已打卡' : '未打卡';
+    }
+
+    function doseIcon(type) {
+      return `<span class="dose-icon ${type}" aria-hidden="true"></span>`;
+    }
+
+    function isSameDay(a, b) {
+      return formatDate(a) === formatDate(b);
+    }
+
+    function escapeHTML(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
   </script>
 </body>
