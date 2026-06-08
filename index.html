@@ -382,6 +382,11 @@
       color: #991b1b;
     }
 
+    .btn.warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
     .btn.ghost {
       background: #f2f4f7;
       color: #344054;
@@ -491,6 +496,24 @@
     .small-btn.delete {
       background: #fff1f2;
       color: #be123c;
+    }
+
+    .makeup-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .badge.makeup {
+      background: #fef3c7;
+      color: #92400e;
     }
 
     .empty {
@@ -631,7 +654,8 @@
               <button class="btn primary" type="submit" id="saveBtn">保存记录</button>
               <button class="btn secondary" type="button" id="markDoneBtn">一键成功</button>
               <button class="btn ghost" type="button" id="clearFormBtn">清空输入</button>
-              <button class="btn danger" type="button" id="deleteSelectedBtn">删除当天</button>
+              <button class="btn warning" type="button" id="backfillBtn">补签此日</button>
+              <button class="btn danger" type="button" id="deleteSelectedBtn">删除记录</button>
             </div>
             <p class="guard-note" id="guardNote"></p>
           </form>
@@ -690,6 +714,7 @@
     const saveBtn = document.getElementById('saveBtn');
     const markDoneBtn = document.getElementById('markDoneBtn');
     const clearFormBtn = document.getElementById('clearFormBtn');
+    const backfillBtn = document.getElementById('backfillBtn');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const guardNote = document.getElementById('guardNote');
     const recordsPanel = document.getElementById('recordsPanel');
@@ -700,6 +725,7 @@
     let records = loadRecords();
     let selectedDate = today;
     let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    let backfillDateKey = null;
 
     startDateInput.value = localStorage.getItem(START_KEY) || '2026-04-04';
     jumpDateInput.value = formatDate(today);
@@ -720,6 +746,7 @@
     nextMonthBtn.addEventListener('click', () => moveMonth(1));
     todayBtn.addEventListener('click', () => selectDate(today));
     clearFormBtn.addEventListener('click', clearForm);
+    backfillBtn.addEventListener('click', enableBackfill);
     deleteSelectedBtn.addEventListener('click', deleteSelectedRecord);
     markDoneBtn.addEventListener('click', markSelectedDone);
 
@@ -760,12 +787,13 @@
           record?.status === 0 ? 'has-miss' : ''
         ].filter(Boolean).join(' ');
         button.type = 'button';
-        button.setAttribute('aria-label', `${formatDateCN(date)} ${doseText(dose.type)} ${record ? statusText(record.status) : ''}`.trim());
+        button.setAttribute('aria-label', `${formatDateCN(date)} ${doseText(dose.type)} ${record ? statusText(record.status) : ''} ${record?.backfilled ? '补签' : ''}`.trim());
         button.innerHTML = `
           <span class="num">${date.getDate()}</span>
           <span class="mini-tags">
             ${doseIcon(dose.type)}
             ${record ? `<span class="status-dot ${record.status === 1 ? 'done' : 'miss'}" title="${statusText(record.status)}"></span>` : ''}
+            ${record?.backfilled ? '<span class="makeup-chip" title="补签">补</span>' : ''}
           </span>
         `;
         button.addEventListener('click', () => selectDate(date));
@@ -778,7 +806,10 @@
       const key = formatDate(selectedDate);
       const dose = getDoseInfo(start, selectedDate);
       const record = records[key];
-      const canEdit = isSameDay(selectedDate, today);
+      const isToday = isSameDay(selectedDate, today);
+      const isPast = selectedDate < today;
+      const isBackfillActive = backfillDateKey === key;
+      const canEdit = isToday || isBackfillActive;
 
       selectedDateText.textContent = formatDateCN(selectedDate);
       selectedDose.innerHTML = `${doseIcon(dose.type)} ${doseText(dose.type)}`;
@@ -787,15 +818,26 @@
       recordType.value = record?.type || dose.type;
       recordStatus.value = String(record?.status ?? 1);
       recordNote.value = record?.extend || '';
-      saveBtn.textContent = record ? '更新记录' : '新增记录';
+      saveBtn.textContent = isBackfillActive ? (record ? '更新补签' : '保存补签') : (record ? '更新记录' : '新增记录');
       recordType.disabled = true;
       recordStatus.disabled = !canEdit;
       recordNote.disabled = !canEdit;
       saveBtn.disabled = !canEdit;
       markDoneBtn.disabled = !canEdit;
       clearFormBtn.disabled = !canEdit;
+      backfillBtn.hidden = !isPast;
+      backfillBtn.disabled = !isPast || isBackfillActive;
       deleteSelectedBtn.disabled = !canEdit || !record;
-      guardNote.textContent = canEdit ? '' : '为避免误操作，只能给今天新增或修改打卡记录。';
+
+      if (isToday) {
+        guardNote.textContent = '';
+      } else if (selectedDate > today) {
+        guardNote.textContent = '未来日期不能打卡，也不能补签。';
+      } else if (isBackfillActive) {
+        guardNote.textContent = '正在补签历史日期，请确认日期和备注后保存。';
+      } else {
+        guardNote.textContent = '历史日期默认锁定；确实需要补签时，请点击“补签此日”。';
+      }
     }
 
     function renderRecords() {
@@ -803,7 +845,7 @@
       const rows = Object.values(records)
         .sort((a, b) => b.date.localeCompare(a.date))
         .filter((record) => {
-          const haystack = `${record.date} ${formatDateCN(parseLocalDate(record.date))} ${record.type} ${record.status} ${record.extend}`.toLowerCase();
+          const haystack = `${record.date} ${formatDateCN(parseLocalDate(record.date))} ${record.type} ${record.status} ${record.extend} ${record.backfilled ? '补签' : ''}`.toLowerCase();
           return haystack.includes(keyword);
         });
 
@@ -816,7 +858,10 @@
         tr.innerHTML = `
           <td>${formatDateCN(parseLocalDate(record.date))}</td>
           <td><span class="dose-label">${doseIcon(record.type)} ${doseText(record.type)}</span></td>
-          <td><span class="badge ${record.status === 1 ? 'done' : 'miss'}">${statusText(record.status)}</span></td>
+          <td>
+            <span class="badge ${record.status === 1 ? 'done' : 'miss'}">${statusText(record.status)}</span>
+            ${record.backfilled ? '<span class="badge makeup">补签</span>' : ''}
+          </td>
           <td>${escapeHTML(record.extend || '-')}</td>
           <td>
             <div class="row-actions">
@@ -844,6 +889,7 @@
       selectedDate = stripTime(date);
       viewDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
       jumpDateInput.value = formatDate(selectedDate);
+      backfillDateKey = null;
       renderAll();
     }
 
@@ -853,24 +899,28 @@
     }
 
     function saveSelectedRecord() {
-      if (!isSameDay(selectedDate, today)) return;
+      if (!canEditSelectedDate()) return;
       const key = formatDate(selectedDate);
+      const isBackfill = !isSameDay(selectedDate, today);
       records[key] = {
         date: key,
         type: recordType.value,
         status: Number(recordStatus.value),
         extend: recordNote.value.trim(),
+        backfilled: isBackfill,
+        signedAt: isBackfill ? new Date().toISOString() : undefined,
         updatedAt: new Date().toISOString()
       };
+      backfillDateKey = null;
       persistRecords();
       renderAll();
     }
 
     function markSelectedDone() {
-      if (!isSameDay(selectedDate, today)) return;
+      if (!canEditSelectedDate()) return;
       recordStatus.value = '1';
       if (!recordNote.value.trim()) {
-        recordNote.value = '按时吃药';
+        recordNote.value = isSameDay(selectedDate, today) ? '按时吃药' : '补签：按时吃药';
       }
       saveSelectedRecord();
     }
@@ -883,7 +933,8 @@
     }
 
     function deleteSelectedRecord() {
-      if (!isSameDay(selectedDate, today)) return;
+      if (!canEditSelectedDate()) return;
+      backfillDateKey = null;
       deleteRecord(formatDate(selectedDate));
     }
 
@@ -892,6 +943,23 @@
       delete records[dateKey];
       persistRecords();
       renderAll();
+    }
+
+    function enableBackfill() {
+      if (selectedDate >= today) return;
+      backfillDateKey = formatDate(selectedDate);
+      const shouldFillNote = !recordNote.value.trim();
+      renderSelected();
+      if (!recordNote.value.trim()) {
+        recordNote.value = '补签';
+      }
+      if (shouldFillNote) {
+        recordNote.value = '补签';
+      }
+    }
+
+    function canEditSelectedDate() {
+      return isSameDay(selectedDate, today) || backfillDateKey === formatDate(selectedDate);
     }
 
     function toggleRecords() {
