@@ -245,7 +245,7 @@
     .mini-tags {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
 
     .dose-icon {
@@ -281,6 +281,16 @@
 
     .status-dot.miss {
       background: var(--miss);
+    }
+
+    .makeup-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+      background: #f59e0b;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
     }
 
     .badge {
@@ -793,7 +803,7 @@
           <span class="mini-tags">
             ${doseIcon(dose.type)}
             ${record ? `<span class="status-dot ${record.status === 1 ? 'done' : 'miss'}" title="${statusText(record.status)}"></span>` : ''}
-            ${record?.backfilled ? '<span class="makeup-chip" title="补签">补</span>' : ''}
+            ${record?.backfilled ? '<span class="makeup-dot" title="补签"></span>' : ''}
           </span>
         `;
         button.addEventListener('click', () => selectDate(date));
@@ -854,7 +864,7 @@
 
       rows.forEach((record) => {
         const tr = document.createElement('tr');
-        const isTodayRecord = record.date === formatDate(today);
+        const canDeleteFromTable = record.date === formatDate(today) || Boolean(record.backfilled);
         tr.innerHTML = `
           <td>${formatDateCN(parseLocalDate(record.date))}</td>
           <td><span class="dose-label">${doseIcon(record.type)} ${doseText(record.type)}</span></td>
@@ -866,7 +876,7 @@
           <td>
             <div class="row-actions">
               <button class="small-btn" type="button" data-action="edit" data-date="${record.date}">edit</button>
-              <button class="small-btn delete" type="button" data-action="delete" data-date="${record.date}" ${isTodayRecord ? '' : 'disabled'}>delete</button>
+              <button class="small-btn delete" type="button" data-action="delete" data-date="${record.date}" ${canDeleteFromTable ? '' : 'disabled'}>delete</button>
             </div>
           </td>
         `;
